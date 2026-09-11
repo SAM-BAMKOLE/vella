@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vella — Long Form Text for WhatsApp Status</title>
+
+  <!-- PWA Manifest & Meta Tags -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#312e81" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Vella" />
+  <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3621/3621569.png" />
+  
+  <!-- Tailwind CSS v4 CDN -->
+  <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+  
+  <!-- html2canvas-pro (renders oklab/oklch/modern Tailwind CSS colors smoothly) -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas-pro@1.5.8/dist/html2canvas-pro.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Fredoka:wght@500;600&family=Inter:wght@400;600&family=Patrick+Hand&family=Playfair+Display:ital,wght@0,600;1,400&family=Space+Grotesk:wght@500&display=swap" rel="stylesheet">
+
+  <style>
+    .font-sans-clean { font-family: 'Inter', sans-serif; }
+    .font-serif-classic { font-family: 'Playfair Display', serif; }
+    .font-playful { font-family: 'Space Grotesk', sans-serif; }
+    .font-playful-round { font-family: 'Fredoka', sans-serif; }
+    .font-handwriting { font-family: 'Patrick Hand', cursive; }
+    .font-cinzel { font-family: 'Cinzel', serif; }
+
+    .aspect-2-3 { aspect-ratio: 2 / 3; }
+    .aspect-3-4 { aspect-ratio: 3 / 4; }
+    .aspect-4-5 { aspect-ratio: 4 / 5; }
+  </style>
+</head>
+<body class="h-full text-slate-800 antialiased font-sans-clean bg-slate-100/80 selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white sticky top-0 z-30 border-b border-indigo-800/40">
+    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 bg-indigo-500 text-white rounded-lg flex items-center justify-center font-serif-classic font-bold text-base shadow-sm">V</div>
+        <span class="font-bold text-lg tracking-tight">Vella</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <button id="pwaInstallBtn" class="hidden text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-3 py-1.5 rounded-lg transition-all shadow-xs">
+          Install App
+        </button>
+        <span class="text-xs text-indigo-200/80 font-medium hidden sm:inline">WhatsApp Status Text Formatter</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+    
+    <!-- LEFT COLUMN: INPUT & CONTROLS -->
+    <section class="lg:col-span-6 space-y-5">
+      
+      <!-- Text Area -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200/90 space-y-3">
+        <label for="editorText" class="block text-xs font-semibold uppercase tracking-wider text-slate-500">
+          Your Writeup
+        </label>
+        <textarea 
+          id="editorText" 
+          rows="7" 
+          class="w-full p-3.5 text-sm bg-slate-50/60 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all resize-y"
+          placeholder="Type or paste your writeup here...&#10;&#10;Use '||' double pipes anywhere to manually split into separate status cards. Otherwise, double line breaks (paragraphs) will split automatically."
+        >When you have a long piece of thought or a continuous story to tell, breaking it up across several statuses can get frustrating when character limits cut your sentences mid-way.
+
+||
+
+Vella transforms your continuous text into elegant, highly readable image cards tailored for status updates. Each chunk retains its context without forced trims.
+
+||
+
+Choose your favorite font style, pick background colors, format quotes or key highlights, and share all PNG cards directly to WhatsApp in order.</textarea>
+        
+        <div class="flex justify-between items-center text-xs text-slate-400 pt-1">
+          <span>Manual split: <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 font-mono">||</code></span>
+          <span id="chunkCount" class="font-semibold text-indigo-600">3 cards generated</span>
+        </div>
+      </div>
+
+      <!-- Scope Switcher -->
+      <div class="bg-indigo-50/60 p-1.5 rounded-xl border border-indigo-100 grid grid-cols-3 gap-1 text-xs font-medium">
+        <button id="scopeAllBtn" class="py-2 rounded-lg text-center bg-white text-indigo-950 transition-all border border-indigo-200/60 shadow-2xs">
+          Style All
+        </button>
+        <button id="scopeSingleBtn" class="py-2 rounded-lg text-center text-slate-600 hover:text-indigo-900 transition-all">
+          Card <span id="activeCardLabel">1</span> Only
+        </button>
+        <button id="scopePatternBtn" class="py-2 rounded-lg text-center text-slate-600 hover:text-indigo-900 transition-all flex items-center justify-center gap-1">
+          Progression
+        </button>
+      </div>
+
+      <!-- Pattern Notice -->
+      <div id="patternNotice" class="hidden bg-indigo-600/10 border border-indigo-200 text-indigo-900 p-3 rounded-lg text-xs space-y-2">
+        <div class="flex justify-between items-center font-semibold">
+          <span>Style Progression Active</span>
+          <span class="text-[10px] text-indigo-600 uppercase font-bold tracking-wider">Repeating Pattern</span>
+        </div>
+        <p class="text-[11px] text-indigo-800 leading-relaxed">
+          Set pattern length below. Each card in your sequence gets its own unique style, which then repeats cyclically across all remaining cards!
+        </p>
+        <div class="flex items-center gap-2 pt-1">
+          <label class="text-[11px] font-medium">Pattern Length:</label>
+          <select id="patternLengthSelect" class="bg-white border border-indigo-300 text-xs rounded px-2 py-1 font-semibold text-indigo-900 focus:outline-none">
+            <option value="2">2 Styles (A - B - A - B)</option>
+            <option value="3" selected>3 Styles (A - B - C - A - B - C)</option>
+            <option value="4">4 Styles (A - B - C - D)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Customization Controls -->
+      <div class="bg-white p-5 rounded-xl border border-slate-200/90 space-y-5">
+        
+        <!-- Typography Style -->
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-2">Typography Style</label>
+          <div class="grid grid-cols-3 gap-2" id="fontOptions">
+            <button data-font="font-sans-clean" class="font-btn active p-2.5 text-xs rounded-lg border border-slate-200 hover:border-slate-400 font-sans-clean text-center transition-all bg-indigo-600 text-white border-indigo-600">Sans Clean</button>
+            <button data-font="font-serif-classic" class="font-btn p-2.5 text-xs rounded-lg border border-slate-200 hover:border-slate-400 font-serif-classic text-center transition-all text-slate-700">Serif Editorial</button>
+            <button data-font="font-playful" class="font-btn p-2.5 text-xs rounded-lg border border-slate-200 hover:border-slate-400 font-playful text-center transition-all text-slate-700">Playful Modern</button>
+            <button data-font="font-playful-round" class="font-btn p-2.5 text-xs rounded-lg border border-slate-200 hover:border-slate-400 font-playful-round text-center transition-all text-slate-700">Playful Round</button>
+            <button data-font="font-handwriting" class="font-btn p-2.5 text-sm rounded-lg border border-slate-200 hover:border-slate-400 font-handwriting text-center transition-all text-slate-700">Handwritten</button>
+            <button data-font="font-cinzel" class="font-btn p-2.5 text-xs rounded-lg border border-slate-200 hover:border-slate-400 font-cinzel text-center transition-all text-slate-700">Cinzel Elegant</button>
+          </div>
+        </div>
+
+        <!-- Text Formatting -->
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-2">Text Formatting & Highlights</label>
+          <div class="flex gap-2">
+            <button id="toggleBold" class="p-2 px-4 text-xs font-bold border border-slate-200 rounded-lg hover:bg-slate-50 transition-all">B</button>
+            <button id="toggleItalic" class="p-2 px-4 text-xs italic border border-slate-200 rounded-lg hover:bg-slate-50 transition-all">I</button>
+            <button id="toggleQuote" class="p-2 px-4 text-xs border border-slate-200 rounded-lg hover:bg-slate-50 transition-all flex items-center gap-1.5">
+              <span>“ ”</span> Blockquote
+            </button>
+          </div>
+        </div>
+
+        <!-- Aspect Ratio -->
+        <div>
+          <label class="block text-xs font-medium text-slate-700 mb-2">Aspect Ratio</label>
+          <div class="grid grid-cols-3 gap-2" id="ratioOptions">
+            <button data-ratio="aspect-2-3" class="ratio-btn p-2 text-xs rounded-lg border border-slate-200 hover:border-slate-400 text-center transition-all text-slate-700">2:3 (Tall)</button>
+            <button data-ratio="aspect-3-4" class="ratio-btn active p-2 text-xs rounded-lg border border-slate-200 hover:border-slate-400 text-center transition-all bg-indigo-600 text-white border-indigo-600">3:4 (Standard)</button>
+            <button data-ratio="aspect-4-5" class="ratio-btn p-2 text-xs rounded-lg border border-slate-200 hover:border-slate-400 text-center transition-all text-slate-700">4:5 (Compact)</button>
+          </div>
+        </div>
+
+        <!-- Background Color Swatches -->
+        <div>
+          <div class="flex justify-between items-center mb-2">
+            <label class="block text-xs font-medium text-slate-700">Background Color</label>
+            <span id="contrastIndicator" class="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200/80">Auto Contrast Active</span>
+          </div>
+          <div class="flex flex-wrap gap-2.5 items-center" id="colorSwatches">
+            <button data-color="#ffffff" class="color-swatch w-7 h-7 rounded-full border border-slate-300 ring-2 ring-indigo-600 ring-offset-1" style="background-color: #ffffff;"></button>
+            <button data-color="#f8fafc" class="color-swatch w-7 h-7 rounded-full border border-slate-200" style="background-color: #f8fafc;"></button>
+            <button data-color="#0f172a" class="color-swatch w-7 h-7 rounded-full border border-slate-200" style="background-color: #0f172a;"></button>
+            <button data-color="#312e81" class="color-swatch w-7 h-7 rounded-full border border-slate-200" style="background-color: #312e81;"></button>
+            <button data-color="#064e3b" class="color-swatch w-7 h-7 rounded-full border border-slate-200" style="background-color: #064e3b;"></button>
+            <button data-color="#fef3c7" class="color-swatch w-7 h-7 rounded-full border border-slate-200" style="background-color: #fef3c7;"></button>
+            <button data-color="#eff6ff" class="color-swatch w-7 h-7 rounded-full border border-slate-200" style="background-color: #eff6ff;"></button>
+            <button data-color="#fdf2f8" class="color-swatch w-7 h-7 rounded-full border border-slate-200" style="background-color: #fdf2f8;"></button>
+
+            <!-- Custom Picker -->
+            <label class="w-7 h-7 rounded-full border border-slate-300 flex items-center justify-center cursor-pointer bg-slate-100 text-slate-600 hover:text-slate-900 text-xs font-bold" title="Custom Color">
+              +
+              <input type="color" id="customColorPicker" class="sr-only" value="#ffffff" />
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Action Buttons (Share / Download) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <button id="shareAllBtn" class="py-3.5 px-4 bg-emerald-600 text-white rounded-xl font-medium text-sm hover:bg-emerald-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-xs">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+          Share All to WhatsApp
+        </button>
+
+        <button id="downloadAllBtn" class="py-3.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 active:scale-[0.99] transition-all flex items-center justify-center gap-2 shadow-xs">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          Download All Cards
+        </button>
+      </div>
+
+    </section>
+
+    <!-- RIGHT COLUMN: CARDS PREVIEW -->
+    <section class="lg:col-span-6 space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Live Card Canvas</h2>
+        <span class="text-xs text-indigo-600 font-medium">Click card to select & edit</span>
+      </div>
+
+      <div id="cardsPreviewContainer" class="space-y-6"></div>
+    </section>
+
+  </main>
+
+  <script>
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => {
+          console.warn('Service Worker registration failed:', err);
+        });
+      });
+    }
+
+    // PWA Install Prompt Handler
+    let deferredPrompt;
+    const pwaInstallBtn = document.getElementById('pwaInstallBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      pwaInstallBtn.classList.remove('hidden');
+    });
+
+    pwaInstallBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        pwaInstallBtn.classList.add('hidden');
+      }
+      deferredPrompt = null;
+    });
+
+    // App State
+    const state = {
+      rawText: '',
+      chunks: [],
+      cardStyles: [], 
+      patternSeedStyles: [], 
+      patternLength: 3,
+      activeCardIndex: 0,
+      scope: 'all'
+    };
+
+    const createDefaultStyle = () => ({
+      fontClass: 'font-sans-clean',
+      aspectRatio: 'aspect-3-4',
+      bgColor: '#ffffff',
+      isBold: false,
+      isItalic: false,
+      isBlockquote: false
+    });
+
+    const editorText = document.getElementById('editorText');
+    const cardsPreviewContainer = document.getElementById('cardsPreviewContainer');
+    const chunkCount = document.getElementById('chunkCount');
+    const downloadAllBtn = document.getElementById('downloadAllBtn');
+    const shareAllBtn = document.getElementById('shareAllBtn');
+    const customColorPicker = document.getElementById('customColorPicker');
+    
+    const scopeAllBtn = document.getElementById('scopeAllBtn');
+    const scopeSingleBtn = document.getElementById('scopeSingleBtn');
+    const scopePatternBtn = document.getElementById('scopePatternBtn');
+    const activeCardLabel = document.getElementById('activeCardLabel');
+    const patternNotice = document.getElementById('patternNotice');
+    const patternLengthSelect = document.getElementById('patternLengthSelect');
+
+    window.addEventListener('DOMContentLoaded', () => {
+      state.rawText = editorText.value;
+      
+      for (let i = 0; i < 4; i++) {
+        state.patternSeedStyles.push(createDefaultStyle());
+      }
+      
+      updateChunks();
+      setupEventListeners();
+      renderCards();
+    });
+
+    function updateChunks() {
+      if (!state.rawText.trim()) {
+        state.chunks = [];
+        state.cardStyles = [];
+        return;
+      }
+
+      let rawSplit = state.rawText.split('||');
+      let parsed = [];
+
+      if (rawSplit.length === 1) {
+        parsed = rawSplit[0].split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
+      } else {
+        parsed = rawSplit.map(s => s.trim()).filter(Boolean);
+      }
+
+      state.chunks = parsed;
+
+      while (state.cardStyles.length < state.chunks.length) {
+        state.cardStyles.push(createDefaultStyle());
+      }
+      if (state.cardStyles.length > state.chunks.length) {
+        state.cardStyles = state.cardStyles.slice(0, state.chunks.length);
+      }
+
+      if (state.activeCardIndex >= state.chunks.length) {
+        state.activeCardIndex = Math.max(0, state.chunks.length - 1);
+      }
+
+      if (state.scope === 'pattern') {
+        applyProgressionPattern();
+      }
+    }
+
+    function setupEventListeners() {
+      editorText.addEventListener('input', (e) => {
+        state.rawText = e.target.value;
+        updateChunks();
+        renderCards();
+        syncControlsUI();
+      });
+
+      scopeAllBtn.addEventListener('click', () => setScope('all'));
+      scopeSingleBtn.addEventListener('click', () => setScope('single'));
+      scopePatternBtn.addEventListener('click', () => setScope('pattern'));
+
+      patternLengthSelect.addEventListener('change', (e) => {
+        state.patternLength = parseInt(e.target.value, 10);
+        if (state.scope === 'pattern') {
+          applyProgressionPattern();
+          renderCards();
+          syncControlsUI();
+        }
+      });
+
+      document.getElementById('fontOptions').addEventListener('click', (e) => {
+        const btn = e.target.closest('.font-btn');
+        if (!btn) return;
+        applyStyleToScope('fontClass', btn.dataset.font);
+      });
+
+      document.getElementById('ratioOptions').addEventListener('click', (e) => {
+        const btn = e.target.closest('.ratio-btn');
+        if (!btn) return;
+        applyStyleToScope('aspectRatio', btn.dataset.ratio);
+      });
+
+      document.getElementById('toggleBold').addEventListener('click', () => {
+        const current = getActiveStyle().isBold;
+        applyStyleToScope('isBold', !current);
+      });
+
+      document.getElementById('toggleItalic').addEventListener('click', () => {
+        const current = getActiveStyle().isItalic;
+        applyStyleToScope('isItalic', !current);
+      });
+
+      document.getElementById('toggleQuote').addEventListener('click', () => {
+        const current = getActiveStyle().isBlockquote;
+        applyStyleToScope('isBlockquote', !current);
+      });
+
+      document.getElementById('colorSwatches').addEventListener('click', (e) => {
+        const swatch = e.target.closest('.color-swatch');
+        if (!swatch) return;
+        applyStyleToScope('bgColor', swatch.dataset.color);
+      });
+
+      customColorPicker.addEventListener('input', (e) => {
+        applyStyleToScope('bgColor', e.target.value);
+      });
+
+      downloadAllBtn.addEventListener('click', downloadAllCards);
+      shareAllBtn.addEventListener('click', shareAllCards);
+    }
+
+    function setScope(mode) {
+      state.scope = mode;
+
+      const activeClass = 'py-2 rounded-lg text-center bg-white text-indigo-950 border border-indigo-200/60 shadow-2xs font-semibold';
+      const inactiveClass = 'py-2 rounded-lg text-center text-slate-600 hover:text-indigo-900 transition-all font-medium';
+
+      scopeAllBtn.className = mode === 'all' ? activeClass : inactiveClass;
+      scopeSingleBtn.className = mode === 'single' ? activeClass : inactiveClass;
+      scopePatternBtn.className = mode === 'pattern' ? activeClass : inactiveClass;
+
+      patternNotice.classList.toggle('hidden', mode !== 'pattern');
+
+      if (mode === 'pattern') {
+        applyProgressionPattern();
+      }
+
+      renderCards();
+      syncControlsUI();
+    }
+
+    function getActiveStyle() {
+      if (state.scope === 'pattern') {
+        const seedIndex = state.activeCardIndex % state.patternLength;
+        return state.patternSeedStyles[seedIndex];
+      }
+      return state.cardStyles[state.activeCardIndex] || createDefaultStyle();
+    }
+
+    function applyProgressionPattern() {
+      if (state.cardStyles.length === 0) return;
+
+      state.cardStyles.forEach((_, idx) => {
+        const seedIdx = idx % state.patternLength;
+        state.cardStyles[idx] = { ...state.patternSeedStyles[seedIdx] };
+      });
+    }
+
+    function applyStyleToScope(key, value) {
+      if (state.cardStyles.length === 0) return;
+
+      if (state.scope === 'all') {
+        state.cardStyles.forEach(s => s[key] = value);
+      } else if (state.scope === 'single') {
+        state.cardStyles[state.activeCardIndex][key] = value;
+      } else if (state.scope === 'pattern') {
+        const seedIdx = state.activeCardIndex % state.patternLength;
+        state.patternSeedStyles[seedIdx][key] = value;
+        applyProgressionPattern();
+      }
+
+      renderCards();
+      syncControlsUI();
+    }
+
+    function isDarkBg(hexColor) {
+      const hex = hexColor.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16) || 255;
+      const g = parseInt(hex.substring(2, 4), 16) || 255;
+      const b = parseInt(hex.substring(4, 6), 16) || 255;
+      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+      return luminance <= 0.55;
+    }
+
+    function syncControlsUI() {
+      const activeStyle = getActiveStyle();
+
+      document.querySelectorAll('.font-btn').forEach(btn => {
+        const match = btn.dataset.font === activeStyle.fontClass;
+        btn.className = `font-btn p-2.5 text-xs rounded-lg border transition-all text-center ${btn.dataset.font} ${
+          match ? 'bg-indigo-600 text-white border-indigo-600 font-semibold' : 'border-slate-200 hover:border-slate-400 text-slate-700 bg-white'
+        }`;
+      });
+
+      document.querySelectorAll('.ratio-btn').forEach(btn => {
+        const match = btn.dataset.ratio === activeStyle.aspectRatio;
+        btn.className = `ratio-btn p-2 text-xs rounded-lg border transition-all text-center ${
+          match ? 'bg-indigo-600 text-white border-indigo-600 font-semibold' : 'border-slate-200 hover:border-slate-400 text-slate-700 bg-white'
+        }`;
+      });
+
+      const bBtn = document.getElementById('toggleBold');
+      bBtn.className = `p-2 px-4 text-xs font-bold border rounded-lg transition-all ${
+        activeStyle.isBold ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+      }`;
+
+      const iBtn = document.getElementById('toggleItalic');
+      iBtn.className = `p-2 px-4 text-xs italic border rounded-lg transition-all ${
+        activeStyle.isItalic ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+      }`;
+
+      const qBtn = document.getElementById('toggleQuote');
+      qBtn.className = `p-2 px-4 text-xs border rounded-lg transition-all flex items-center gap-1.5 ${
+        activeStyle.isBlockquote ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+      }`;
+
+      document.querySelectorAll('.color-swatch').forEach(swatch => {
+        const match = swatch.dataset.color.toLowerCase() === activeStyle.bgColor.toLowerCase();
+        swatch.classList.toggle('ring-2', match);
+        swatch.classList.toggle('ring-indigo-600', match);
+        swatch.classList.toggle('ring-offset-1', match);
+      });
+
+      activeCardLabel.textContent = `${state.activeCardIndex + 1}`;
+    }
+
+    function renderCards() {
+      cardsPreviewContainer.innerHTML = '';
+      chunkCount.textContent = `${state.chunks.length} card${state.chunks.length === 1 ? '' : 's'} generated`;
+
+      if (state.chunks.length === 0) {
+        cardsPreviewContainer.innerHTML = `
+          <div class="text-center py-12 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50">
+            <p class="text-slate-400 text-sm">Start typing on the left to generate status cards.</p>
+          </div>
+        `;
+        return;
+      }
+
+      state.chunks.forEach((chunkText, index) => {
+        const style = state.cardStyles[index];
+        const isDark = isDarkBg(style.bgColor);
+
+        const textColor = isDark ? '#ffffff' : '#0f172a';
+        const subTextColor = isDark ? 'rgba(255,255,255,0.5)' : 'rgba(15,23,42,0.4)';
+        const borderQuoteColor = isDark ? '#ffffff' : '#0f172a';
+
+        const isSelected = index === state.activeCardIndex;
+        const patternPos = (index % state.patternLength) + 1;
+
+        const cardWrapper = document.createElement('div');
+        cardWrapper.className = 'space-y-2 cursor-pointer';
+        cardWrapper.onclick = () => {
+          state.activeCardIndex = index;
+          syncControlsUI();
+          renderCards();
+        };
+
+        let formattingStyle = '';
+        if (style.isBold) formattingStyle += ' font-bold';
+        if (style.isItalic) formattingStyle += ' italic';
+
+        const quoteStyle = style.isBlockquote 
+          ? `border-left: 4px solid ${borderQuoteColor}; padding-left: 1rem;` 
+          : '';
+
+        cardWrapper.innerHTML = `
+          <div class="flex justify-between items-center text-xs text-slate-500 px-1">
+            <span class="font-medium ${isSelected ? 'text-indigo-600 font-semibold' : ''}">
+              Card ${index + 1} of ${state.chunks.length} 
+              ${state.scope === 'pattern' ? `<span class="text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded ml-1 font-mono">Style Slot ${patternPos}</span>` : ''}
+            </span>
+            <div class="flex items-center gap-1.5">
+              <button onclick="event.stopPropagation(); shareSingleCard(${index})" class="hover:text-emerald-600 flex items-center gap-1 font-medium text-xs text-slate-600 bg-white border border-slate-200 px-2 py-1 rounded-md transition-all hover:border-emerald-300" title="Share via Native App">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                Share
+              </button>
+              <button onclick="event.stopPropagation(); downloadSingleCard(${index})" class="hover:text-indigo-600 flex items-center gap-1 font-medium text-xs text-slate-600 bg-white border border-slate-200 px-2 py-1 rounded-md transition-all hover:border-indigo-300" title="Download PNG">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Download
+              </button>
+            </div>
+          </div>
+
+          <div id="status-card-${index}" 
+               class="status-card ${style.aspectRatio} ${style.fontClass} relative rounded-xl p-8 flex flex-col justify-between transition-all overflow-hidden border ${isSelected ? 'border-2 border-indigo-600' : 'border-slate-200/80'}"
+               style="background-color: ${style.bgColor};">
+            
+            <div class="flex justify-between items-center">
+              <span class="text-[10px] tracking-widest font-semibold uppercase" style="color: ${subTextColor};">Vella</span>
+              <span class="text-[10px] font-mono" style="color: ${subTextColor};">${index + 1}/${state.chunks.length}</span>
+            </div>
+
+            <div class="my-auto py-4">
+              <div class="text-base sm:text-lg leading-relaxed ${formattingStyle} whitespace-pre-line" style="color: ${textColor}; ${quoteStyle}">
+                ${escapeHtml(chunkText)}
+              </div>
+            </div>
+
+            <div class="text-right">
+              <span class="text-[9px] uppercase tracking-wider font-mono" style="color: ${subTextColor};">Swipe next →</span>
+            </div>
+          </div>
+        `;
+
+        cardsPreviewContainer.appendChild(cardWrapper);
+      });
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Convert Canvas element to JavaScript File object
+    function canvasToFile(canvas, filename) {
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+          const file = new File([blob], filename, { type: 'image/png' });
+          resolve(file);
+        }, 'image/png', 1.0);
+      });
+    }
+
+    async function generateCardFile(index) {
+      const cardElement = document.getElementById(`status-card-${index}`);
+      if (!cardElement) return null;
+
+      if (typeof window.html2canvas !== 'function') {
+        alert('Image rendering engine is still loading. Please try again.');
+        return null;
+      }
+
+      const canvas = await window.html2canvas(cardElement, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: null,
+        logging: false
+      });
+
+      // Name formatted sequentially (01-Vella-Card.png) to guarantee array order preservation
+      const paddedIndex = String(index + 1).padStart(2, '0');
+      return await canvasToFile(canvas, `${paddedIndex}-Vella-Card.png`);
+    }
+
+    async function downloadSingleCard(index) {
+      try {
+        const file = await generateCardFile(index);
+        if (!file) return;
+
+        const url = URL.createObjectURL(file);
+        const link = document.createElement('a');
+        link.download = file.name;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Error exporting image:', err);
+        alert('Failed to generate card image.');
+      }
+    }
+
+    async function shareSingleCard(index) {
+      try {
+        const file = await generateCardFile(index);
+        if (!file) return;
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'Vella Status Card'
+          });
+        } else {
+          // Fallback if device doesn't support Web Share API
+          downloadSingleCard(index);
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Share error:', err);
+        }
+      }
+    }
+
+    async function shareAllCards() {
+      if (state.chunks.length === 0) return;
+
+      shareAllBtn.disabled = true;
+      shareAllBtn.innerText = 'Preparing cards...';
+
+      try {
+        const files = [];
+        for (let i = 0; i < state.chunks.length; i++) {
+          const file = await generateCardFile(i);
+          if (file) files.push(file);
+        }
+
+        // Test if sharing multiple files is supported
+        if (navigator.canShare && navigator.canShare({ files })) {
+          await navigator.share({
+            files: files,
+            title: 'Vella Status Sequence'
+          });
+        } else {
+          alert('Multi-file sharing is not supported on this browser/device. Cards will be downloaded instead.');
+          await downloadAllCards();
+        }
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Batch share error:', err);
+          alert('Sharing failed. Try downloading cards directly.');
+        }
+      } finally {
+        shareAllBtn.disabled = false;
+        shareAllBtn.innerHTML = `
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+          Share All to WhatsApp
+        `;
+      }
+    }
+
+    async function downloadAllCards() {
+      if (state.chunks.length === 0) return;
+
+      downloadAllBtn.disabled = true;
+      downloadAllBtn.innerText = 'Generating images...';
+
+      for (let i = 0; i < state.chunks.length; i++) {
+        await downloadSingleCard(i);
+        await new Promise(resolve => setTimeout(resolve, 350));
+      }
+
+      downloadAllBtn.disabled = false;
+      downloadAllBtn.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+        Download All Cards
+      `;
+    }
+  </script>
+</body>
+</html>
