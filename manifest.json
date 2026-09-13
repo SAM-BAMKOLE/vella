@@ -2,7 +2,7 @@
   "name": "Vella — Status Text Formatter",
   "short_name": "Vella",
   "description": "Format long writeups into elegant WhatsApp Status image cards",
-  "start_url": "../index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#312e81",
