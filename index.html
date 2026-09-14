@@ -777,6 +777,8 @@ Choose your favorite font style, pick background colors, format quotes or key hi
           return;
         }
 
+        const totalCards = state.chunks.length;
+
         state.chunks.forEach((chunkText, index) => {
           const style = state.cardStyles[index];
           const isDark = isDarkBg(style.bgColor);
@@ -788,6 +790,7 @@ Choose your favorite font style, pick background colors, format quotes or key hi
           const borderQuoteColor = isDark ? "#ffffff" : "#0f172a";
 
           const isSelected = index === state.activeCardIndex;
+          const isLastCard = index === totalCards - 1;
           const patternPos = (index % state.patternLength) + 1;
 
           const cardWrapper = document.createElement("div");
@@ -810,7 +813,7 @@ Choose your favorite font style, pick background colors, format quotes or key hi
           cardWrapper.innerHTML = `
           <div class="flex justify-between items-center text-xs text-slate-500 px-1">
             <span class="font-medium ${isSelected ? "text-sky-600 font-semibold" : ""}">
-              Card ${index + 1} of ${state.chunks.length} 
+              Card ${index + 1} of ${totalCards} 
               ${state.scope === "pattern" ? `<span class="text-[10px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded ml-1 font-mono">Style Slot ${patternPos}</span>` : ""}
             </span>
             <div class="flex items-center gap-1.5">
@@ -831,17 +834,15 @@ Choose your favorite font style, pick background colors, format quotes or key hi
             
             <div class="flex justify-between items-center mb-4">
               <span class="text-[10px] tracking-widest font-semibold uppercase" style="color: ${subTextColor};">Vella</span>
-              <span class="text-[10px] font-mono" style="color: ${subTextColor};">${index + 1}/${state.chunks.length}</span>
+              <span class="text-[10px] font-mono" style="color: ${subTextColor};">${index + 1}/${totalCards}</span>
             </div>
 
             <div class="my-auto py-4">
-              <div class="text-base sm:text-lg leading-relaxed ${formattingStyle} whitespace-pre-line" style="color: ${textColor}; ${quoteStyle}">
-                ${escapeHtml(chunkText)}
-              </div>
+              <div class="text-base sm:text-lg leading-relaxed ${formattingStyle}" style="color: ${textColor}; ${quoteStyle} white-space: pre-wrap; word-break: break-word;">${escapeHtml(chunkText)}</div>
             </div>
 
-            <div class="text-right mt-4">
-              <span class="text-[9px] uppercase tracking-wider font-mono" style="color: ${subTextColor};">Swipe next →</span>
+            <div class="text-right mt-4 min-h-[16px]">
+              ${isLastCard ? "" : `<span class="text-[9px] uppercase tracking-wider font-mono" style="color: ${subTextColor};">Swipe next →</span>`}
             </div>
           </div>
         `;
@@ -913,18 +914,22 @@ Choose your favorite font style, pick background colors, format quotes or key hi
           const file = await generateCardFile(index);
           if (!file) return;
 
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          if (
+            navigator.share &&
+            navigator.canShare &&
+            navigator.canShare({ files: [file] })
+          ) {
             await navigator.share({
               files: [file],
               title: "Vella Status Card",
             });
           } else {
-            // Fallback if device doesn't support Web Share API
             downloadSingleCard(index);
           }
         } catch (err) {
           if (err.name !== "AbortError") {
             console.error("Share error:", err);
+            downloadSingleCard(index);
           }
         }
       }
@@ -942,22 +947,26 @@ Choose your favorite font style, pick background colors, format quotes or key hi
             if (file) files.push(file);
           }
 
-          // Test if sharing multiple files is supported
-          if (navigator.canShare && navigator.canShare({ files })) {
+          if (
+            navigator.share &&
+            navigator.canShare &&
+            navigator.canShare({ files })
+          ) {
             await navigator.share({
               files: files,
               title: "Vella Status Sequence",
             });
           } else {
             alert(
-              "Multi-file sharing is not supported on this browser/device. Cards will be downloaded instead.",
+              "Direct batch sharing is not natively supported by your current browser/device. Cards will be downloaded directly instead.",
             );
             await downloadAllCards();
           }
         } catch (err) {
           if (err.name !== "AbortError") {
             console.error("Batch share error:", err);
-            alert("Sharing failed. Try downloading cards directly.");
+            alert("Sharing failed. Downloading cards directly.");
+            await downloadAllCards();
           }
         } finally {
           shareAllBtn.disabled = false;
